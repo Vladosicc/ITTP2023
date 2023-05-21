@@ -1,6 +1,7 @@
 ﻿using ITTP_2023.DbContexts;
 using ITTP_2023.Helpers;
 using ITTP_2023.Models;
+using ITTP_2023.Models.ForResponse;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json.Linq;
@@ -222,7 +223,7 @@ namespace ITTP_2023.Services
             if (user == null)
                 throw new Exception("Неверный логин в запросе");
 
-            return new User() {Name = user.Name, Gender = user.Gender, Birthday = user.Birthday, Admin = user.Admin, RevokedOn = user.RevokedOn };
+            return user;
         }
 
 
@@ -366,7 +367,7 @@ namespace ITTP_2023.Services
             return true;
         }
 
-        public async Task C()
+        public async Task createAdmin()
         {
             _dataContext.Users.Add(new User()
             {

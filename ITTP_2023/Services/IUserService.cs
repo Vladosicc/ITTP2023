@@ -26,7 +26,5 @@ namespace ITTP_2023.Services
 
         public Task<User> LogInByTokenAsync(UserToken token);
         public Task<User> LogInByTokenAsync(string token);
-
-        public Task C();
     }
 }

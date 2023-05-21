@@ -15,7 +15,7 @@ namespace ITTP_2023.Controllers
 
         public IActionResult Index()
         {
-            return View();
+            return Redirect(@"/swagger/index.html");
         }
 
         public IActionResult Privacy()

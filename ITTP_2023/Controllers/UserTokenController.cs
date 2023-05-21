@@ -1,61 +1,32 @@
-﻿using ITTP_2023.Models;
-using ITTP_2023.Models.Errors;
-using ITTP_2023.Models.ForResponse;
+﻿using ITTP_2023.Models.Errors;
 using ITTP_2023.Models.FromBody;
+using ITTP_2023.Models;
 using ITTP_2023.Services;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json.Linq;
-using System.Collections;
-using System.ComponentModel.DataAnnotations;
 using System.Net;
+using ITTP_2023.Models.ForResponse;
 
 namespace ITTP_2023.Controllers
 {
     /// <summary>
-    /// API с полной авторизацией по логину и паролю
+    /// API с использованием токена авторизации. Для авторизации использовать стандартную форму из swagger.
     /// </summary>
     [Route("api/[controller]")]
-    public class UserController : Controller
+    public class UserTokenController : Controller
     {
+        /// <summary>
+        /// Имя токена в Headers
+        /// </summary>
+        const string _tokenName = "Token";
+
         readonly IUserService _service;
 
-        public UserController(IUserService service)
+        public UserTokenController(IUserService service)
         {
             _service = service;
         }
 
         #region GET
-
-        /// <summary>
-        /// Запрос токена
-        /// </summary>
-        /// <remarks>
-        /// Пример запроса:
-        ///
-        ///     GET /GetToken?login=Admin&#38;password=Admin
-        ///
-        /// </remarks>
-        /// <param name="login">Логин</param>
-        /// <param name="password">Пароль</param>
-        /// <returns></returns>
-        /// <response code="200">Успешное выполнение</response>
-        /// <response code="400">Ошибка API</response>
-        [HttpGet("GetToken")]
-        [ProducesResponseType(typeof(UserService.UserToken), (int)HttpStatusCode.OK)]
-        [ProducesResponseType(typeof(ErrorMessage), (int)HttpStatusCode.BadRequest)]
-        public async Task<ActionResult> GetToken(string login, string password)
-        {
-            try
-            {
-                return Ok(await _service.LoginAndGetTokenAsync(login, password));
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new ErrorMessage() { Message = ex.Message, ExceptionType = ex.GetType().Name});
-            }
-        }
 
         /// <summary>
         ///  Запрос списка всех активных (отсутствует RevokedOn) пользователей, список отсортирован по CreatedOn(Доступно Админам)
@@ -66,19 +37,21 @@ namespace ITTP_2023.Controllers
         ///     GET /ReadActiveUsers?login=Admin&#38;password=Admin
         ///
         /// </remarks>
-        /// <param name="login">Логин</param>
-        /// <param name="password">Пароль</param>
         /// <returns></returns>
         /// <response code="200">Успешное выполнение</response>
         /// <response code="400">Ошибка API</response>
         [HttpGet("ReadActiveUsers")]
         [ProducesResponseType(typeof(IEnumerable<User>), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(ErrorMessage), (int)HttpStatusCode.BadRequest)]
-        public async Task<ActionResult> ReadActiveUsers(string login, string password)
+        public async Task<ActionResult> ReadActiveUsers()
         {
             try
             {
-                var user = await _service.LogInByLoginAndPasswordAsync(login, password);
+                if (!Request.Headers.TryGetValue(_tokenName, out var value))
+                {
+                    throw new Exception("Ошибка в получении токена. Необходима авторизация.");
+                }
+                var user = await _service.LogInByTokenAsync(value);
                 return Ok(await _service.GetActiveUsersAsync(user));
             }
             catch (Exception ex)
@@ -96,8 +69,6 @@ namespace ITTP_2023.Controllers
         ///     GET /ReadUserByLogin?login=Admin&#38;password=Admin&#38;loginRequest=Vasya123
         ///
         /// </remarks>
-        /// <param name="login">Логин</param>
-        /// <param name="password">Пароль</param>
         /// <param name="loginRequest">Логин для поиска</param>
         /// <returns></returns>
         /// <response code="200">Успешное выполнение</response>
@@ -105,11 +76,15 @@ namespace ITTP_2023.Controllers
         [HttpGet("ReadUserByLogin")]
         [ProducesResponseType(typeof(UserResponse), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(ErrorMessage), (int)HttpStatusCode.BadRequest)]
-        public async Task<ActionResult> ReadUserByLogin(string login, string password, string loginRequest)
+        public async Task<ActionResult> ReadUserByLogin(string loginRequest)
         {
             try
             {
-                var editor = await _service.LogInByLoginAndPasswordAsync(login, password);
+                if (!Request.Headers.TryGetValue(_tokenName, out var value))
+                {
+                    throw new Exception("Ошибка в получении токена. Необходима авторизация.");
+                }
+                var editor = await _service.LogInByTokenAsync(value);
                 return Ok(new UserResponse(await _service.GetUserByLoginAsync(editor, loginRequest)));
             }
             catch (Exception ex)
@@ -127,19 +102,22 @@ namespace ITTP_2023.Controllers
         ///     GET /Login?login=Admin&#38;password=Admin
         ///
         /// </remarks>
-        /// <param name="login">Логин</param>
-        /// <param name="password">Пароль</param>
         /// <returns></returns>
         /// <response code="200">Успешное выполнение</response>
         /// <response code="400">Ошибка API</response>
         [HttpGet("Login")]
         [ProducesResponseType(typeof(User), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(ErrorMessage), (int)HttpStatusCode.BadRequest)]
-        public async Task<ActionResult> Login(string login, string password)
+        public async Task<ActionResult> Login()
         {
             try
             {
-                var user = (await _service.LogInByLoginAndPasswordAsync(login, password));
+                if (!Request.Headers.TryGetValue(_tokenName, out var value))
+                {
+                    throw new Exception("Ошибка в получении токена. Необходима авторизация.");
+                }
+                var user = await _service.LogInByTokenAsync(value);
+
                 if (user == null)
                     throw new Exception("Неверный логин и/или пароль");
                 if (user.RevokedOn.HasValue)
@@ -162,8 +140,6 @@ namespace ITTP_2023.Controllers
         ///     GET /ReadOlderThan?login=Admin&#38;password=Admin&#38;age=18
         ///
         /// </remarks>
-        /// <param name="login">Логин</param>
-        /// <param name="password">Пароль</param>
         /// <param name="age">Возраст</param>
         /// <returns></returns>
         /// <response code="200">Успешное выполнение</response>
@@ -171,11 +147,16 @@ namespace ITTP_2023.Controllers
         [HttpGet("ReadOlderThan")]
         [ProducesResponseType(typeof(IEnumerable<User>), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(ErrorMessage), (int)HttpStatusCode.BadRequest)]
-        public async Task<ActionResult> ReadOlderThan(string login, string password, int age)
+        public async Task<ActionResult> ReadOlderThan(int age)
         {
             try
             {
-                var editor = await _service.LogInByLoginAndPasswordAsync(login, password);
+                if (!Request.Headers.TryGetValue(_tokenName, out var value))
+                {
+                    throw new Exception("Ошибка в получении токена. Необходима авторизация.");
+                }
+                var editor = await _service.LogInByTokenAsync(value);
+
                 return Ok(await _service.GetUsersOlderAsync(editor, age));
             }
             catch (Exception ex)
@@ -205,8 +186,6 @@ namespace ITTP_2023.Controllers
         ///     }
         ///
         /// </remarks>
-        /// <param name="login">Логин</param>
-        /// <param name="password">Пароль</param>
         /// <param name="user">Информация о новом пользователе</param>
         /// <returns></returns>
         /// <response code="200">Успешное выполнение</response>
@@ -214,11 +193,16 @@ namespace ITTP_2023.Controllers
         [HttpPost("Create")]
         [ProducesResponseType(typeof(User), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(ErrorMessage), (int)HttpStatusCode.BadRequest)]
-        public async Task<ActionResult> Create(string login, string password, [FromBody] UserRequest user)
+        public async Task<ActionResult> Create([FromBody] UserRequest user)
         {
             try
             {
-                var editor = await _service.LogInByLoginAndPasswordAsync(login, password);
+                if (!Request.Headers.TryGetValue(_tokenName, out var value))
+                {
+                    throw new Exception("Ошибка в получении токена. Необходима авторизация.");
+                }
+                var editor = await _service.LogInByTokenAsync(value);
+
                 return Ok(await _service.CreateAsync(editor, user.Login, user.Password, user.Name, user.Gender, user.Birthday, user.Admin));
             }
             catch (Exception ex)
@@ -240,8 +224,6 @@ namespace ITTP_2023.Controllers
         ///     PUT /Block?login=Admin&#38;password=Admin&#38;loginRequest=Vasya123
         ///
         /// </remarks>
-        /// <param name="login">Логин</param>
-        /// <param name="password">Пароль</param>
         /// <param name="loginRequest">Логин для блокировки</param>
         /// <returns></returns>
         /// <response code="200">Успешное выполнение</response>
@@ -249,12 +231,17 @@ namespace ITTP_2023.Controllers
         [HttpPut("Block")]
         [ProducesResponseType(typeof(User), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(ErrorMessage), (int)HttpStatusCode.BadRequest)]
-        public async Task<ActionResult> Block(string login, string password, string loginRequest)
+        public async Task<ActionResult> Block(string loginRequest)
         {
             try
             {
-                var user = await _service.LogInByLoginAndPasswordAsync(login, password);
-                return Ok(await _service.DeleteSoftAsync(user, loginRequest));
+                if (!Request.Headers.TryGetValue(_tokenName, out var value))
+                {
+                    throw new Exception("Ошибка в получении токена. Необходима авторизация.");
+                }
+                var editor = await _service.LogInByTokenAsync(value);
+
+                return Ok(await _service.DeleteSoftAsync(editor, loginRequest));
             }
             catch (Exception ex)
             {
@@ -271,8 +258,6 @@ namespace ITTP_2023.Controllers
         ///     PUT /Unblock?login=Admin&#38;#38;password=Admin&#38;#38;loginRequest=Vasya123
         ///
         /// </remarks>
-        /// <param name="login">Логин</param>
-        /// <param name="password">Пароль</param>
         /// <param name="loginRequest">Логин разблокировки</param>
         /// <returns></returns>
         /// <response code="200">Успешное выполнение</response>
@@ -280,12 +265,17 @@ namespace ITTP_2023.Controllers
         [HttpPut("Unblock")]
         [ProducesResponseType(typeof(User), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(ErrorMessage), (int)HttpStatusCode.BadRequest)]
-        public async Task<ActionResult> Unblock(string login, string password, string loginRequest)
+        public async Task<ActionResult> Unblock(string loginRequest)
         {
             try
             {
-                var user = await _service.LogInByLoginAndPasswordAsync(login, password);
-                return Ok(await _service.UnBlockAsync(user, loginRequest));
+                if (!Request.Headers.TryGetValue(_tokenName, out var value))
+                {
+                    throw new Exception("Ошибка в получении токена. Необходима авторизация.");
+                }
+                var editor = await _service.LogInByTokenAsync(value);
+
+                return Ok(await _service.UnBlockAsync(editor, loginRequest));
             }
             catch (Exception ex)
             {
@@ -302,8 +292,6 @@ namespace ITTP_2023.Controllers
         ///     PUT /Update?login=Admin&#38;password=Admin&#38;loginRequest=Vasya123&#38;name=Vasyliy&#38;gender=1
         ///
         /// </remarks>
-        /// <param name="login">Логин</param>
-        /// <param name="password">Пароль</param>
         /// <param name="loginRequest">Логин изменяемого пользователя (заполняется, если администратор изменяет другого пользователя, иначе оставляется пустым)</param>
         /// <param name="name">Новое имя пользователя (не заполнять, если не нужно изменять)</param>
         /// <param name="gender">Пол (не заполнять, если не нужно изменять)</param>
@@ -314,11 +302,16 @@ namespace ITTP_2023.Controllers
         [HttpPut("Update")]
         [ProducesResponseType(typeof(User), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(ErrorMessage), (int)HttpStatusCode.BadRequest)]
-        public async Task<ActionResult> Update(string login, string password, string loginRequest, string name, int? gender, DateTime? birthday)
+        public async Task<ActionResult> Update(string loginRequest, string name, int? gender, DateTime? birthday)
         {
             try
             {
-                var editor = await _service.LogInByLoginAndPasswordAsync(login, password);
+                if (!Request.Headers.TryGetValue(_tokenName, out var value))
+                {
+                    throw new Exception("Ошибка в получении токена. Необходима авторизация.");
+                }
+                var editor = await _service.LogInByTokenAsync(value);
+
                 return Ok(await _service.UpdateAsync(editor, loginRequest ?? editor.Login, name, gender, birthday));
             }
             catch (Exception ex)
@@ -336,8 +329,6 @@ namespace ITTP_2023.Controllers
         ///     PUT /ChangeLogin?login=Admin&#38;password=Admin&#38;loginRequest=Vasya123&#38;newLogin=Vasya321
         ///
         /// </remarks>
-        /// <param name="login">Логин</param>
-        /// <param name="password">Пароль</param>
         /// <param name="loginRequest">Логин изменяемого пользователя (заполняется, если администратор изменяет другого пользователя, иначе оставляется пустым)</param>
         /// <param name="newLogin">Новый логин</param>
         /// <returns></returns>
@@ -346,11 +337,16 @@ namespace ITTP_2023.Controllers
         [HttpPut("ChangeLogin")]
         [ProducesResponseType(typeof(User), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(ErrorMessage), (int)HttpStatusCode.BadRequest)]
-        public async Task<ActionResult> ChangeLogin(string login, string password, string loginRequest, string newLogin)
+        public async Task<ActionResult> ChangeLogin(string loginRequest, string newLogin)
         {
             try
             {
-                var editor = await _service.LogInByLoginAndPasswordAsync(login, password);
+                if (!Request.Headers.TryGetValue(_tokenName, out var value))
+                {
+                    throw new Exception("Ошибка в получении токена. Необходима авторизация.");
+                }
+                var editor = await _service.LogInByTokenAsync(value);
+
                 return Ok(await _service.UpdateLoginAsync(editor, loginRequest ?? (editor != null ? editor.Login : string.Empty), newLogin));
             }
             catch (Exception ex)
@@ -368,8 +364,6 @@ namespace ITTP_2023.Controllers
         ///     PUT /ChangePassword?login=Admin&#38;password=Admin&#38;loginRequest=Vasya123&#38;newPassword=123456
         ///
         /// </remarks>
-        /// <param name="login">Логин</param>
-        /// <param name="password">Пароль</param>
         /// <param name="loginRequest">Логин изменяемого пользователя (заполняется, если администратор изменяет другого пользователя, иначе оставляется пустым)</param>
         /// <param name="newPassword">Новый пароль</param>
         /// <returns></returns>
@@ -378,11 +372,16 @@ namespace ITTP_2023.Controllers
         [HttpPut("ChangePassword")]
         [ProducesResponseType(typeof(User), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(ErrorMessage), (int)HttpStatusCode.BadRequest)]
-        public async Task<ActionResult> ChangePassword(string login, string password, string loginRequest, string newPassword)
+        public async Task<ActionResult> ChangePassword(string loginRequest, string newPassword)
         {
             try
             {
-                var editor = await _service.LogInByLoginAndPasswordAsync(login, password);
+                if (!Request.Headers.TryGetValue(_tokenName, out var value))
+                {
+                    throw new Exception("Ошибка в получении токена. Необходима авторизация.");
+                }
+                var editor = await _service.LogInByTokenAsync(value);
+
                 return Ok(await _service.UpdatePasswordAsync(editor, loginRequest ?? editor.Login, newPassword));
             }
             catch (Exception ex)
@@ -404,8 +403,6 @@ namespace ITTP_2023.Controllers
         ///     DELETE /Delete?login=Admin&#38;password=Admin&#38;loginRequest=Vasya123
         ///
         /// </remarks>
-        /// <param name="login">Логин</param>
-        /// <param name="password">Пароль</param>
         /// <param name="loginRequest">Логин для полного удаления</param>
         /// <returns></returns>
         /// <response code="200">Успешное выполнение</response>
@@ -413,12 +410,17 @@ namespace ITTP_2023.Controllers
         [HttpDelete("Delete")]
         [ProducesResponseType(typeof(User), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(ErrorMessage), (int)HttpStatusCode.BadRequest)]
-        public async Task<ActionResult> Delete(string login, string password, string loginRequest)
+        public async Task<ActionResult> Delete(string loginRequest)
         {
             try
             {
-                var user = await _service.LogInByLoginAndPasswordAsync(login, password);
-                return Ok(await _service.DeleteHardAsync(user, loginRequest));
+                if (!Request.Headers.TryGetValue(_tokenName, out var value))
+                {
+                    throw new Exception("Ошибка в получении токена. Необходима авторизация.");
+                }
+                var editor = await _service.LogInByTokenAsync(value);
+
+                return Ok(await _service.DeleteHardAsync(editor, loginRequest));
             }
             catch (Exception ex)
             {
