@@ -24,7 +24,7 @@ namespace ITTP_2023.Helpers
             if(userContext.Database.EnsureCreated())
             {
                 UserService userService = new UserService(userContext, null);
-                userService.createAdmin().RunSynchronously();
+                userService.createAdmin().Wait();
             }
 
         }
