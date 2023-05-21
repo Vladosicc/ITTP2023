@@ -1,6 +1,9 @@
 ﻿using ITTP_2023.DbContexts;
+using ITTP_2023.Helpers;
 using ITTP_2023.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using System.Text.Json.Serialization;
 
@@ -72,6 +75,9 @@ namespace ITTP_2023
                 var xmlPath = Path.Combine(basePath, "ITTP_2023.xml");
                 options.IncludeXmlComments(xmlPath);
             });
+
+            DbContextOptionsBuilder builder = new DbContextOptionsBuilder();
+            MigrationHelper.CreateDatabase(builder.UseSqlite(configurationRoot.GetConnectionString("DefaultConnection")).Options);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -87,6 +93,7 @@ namespace ITTP_2023
                 // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
             }
+
             app.UseHttpsRedirection();
             app.UseStaticFiles();
 
