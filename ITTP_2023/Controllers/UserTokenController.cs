@@ -34,7 +34,7 @@ namespace ITTP_2023.Controllers
         /// <remarks>
         /// Пример запроса:
         ///
-        ///     GET /ReadActiveUsers?login=Admin&#38;password=Admin
+        ///     GET /ReadActiveUsers
         ///
         /// </remarks>
         /// <returns></returns>
@@ -66,7 +66,7 @@ namespace ITTP_2023.Controllers
         /// <remarks>
         /// Пример запроса:
         ///
-        ///     GET /ReadUserByLogin?login=Admin&#38;password=Admin&#38;loginRequest=Vasya123
+        ///     GET /ReadUserByLogin?loginRequest=Vasya123
         ///
         /// </remarks>
         /// <param name="loginRequest">Логин для поиска</param>
@@ -99,7 +99,7 @@ namespace ITTP_2023.Controllers
         /// <remarks>
         /// Пример запроса:
         ///
-        ///     GET /Login?login=Admin&#38;password=Admin
+        ///     GET /Login
         ///
         /// </remarks>
         /// <returns></returns>
@@ -137,7 +137,7 @@ namespace ITTP_2023.Controllers
         /// <remarks>
         /// Пример запроса:
         ///
-        ///     GET /ReadOlderThan?login=Admin&#38;password=Admin&#38;age=18
+        ///     GET /ReadOlderThan?age=18
         ///
         /// </remarks>
         /// <param name="age">Возраст</param>
@@ -221,7 +221,7 @@ namespace ITTP_2023.Controllers
         /// <remarks>
         /// Пример запроса:
         ///
-        ///     PUT /Block?login=Admin&#38;password=Admin&#38;loginRequest=Vasya123
+        ///     PUT /Block?loginRequest=Vasya123
         ///
         /// </remarks>
         /// <param name="loginRequest">Логин для блокировки</param>
@@ -255,7 +255,7 @@ namespace ITTP_2023.Controllers
         /// <remarks>
         /// Пример запроса:
         ///
-        ///     PUT /Unblock?login=Admin&#38;#38;password=Admin&#38;#38;loginRequest=Vasya123
+        ///     PUT /Unblock?loginRequest=Vasya123
         ///
         /// </remarks>
         /// <param name="loginRequest">Логин разблокировки</param>
@@ -289,7 +289,7 @@ namespace ITTP_2023.Controllers
         /// <remarks>
         /// Пример запроса:
         ///
-        ///     PUT /Update?login=Admin&#38;password=Admin&#38;loginRequest=Vasya123&#38;name=Vasyliy&#38;gender=1
+        ///     PUT /Update?loginRequest=Vasya123&#38;name=Vasyliy&#38;gender=1
         ///
         /// </remarks>
         /// <param name="loginRequest">Логин изменяемого пользователя (заполняется, если администратор изменяет другого пользователя, иначе оставляется пустым)</param>
@@ -326,7 +326,7 @@ namespace ITTP_2023.Controllers
         /// <remarks>
         /// Пример запроса:
         ///
-        ///     PUT /ChangeLogin?login=Admin&#38;password=Admin&#38;loginRequest=Vasya123&#38;newLogin=Vasya321
+        ///     PUT /ChangeLogin?loginRequest=Vasya123&#38;newLogin=Vasya321
         ///
         /// </remarks>
         /// <param name="loginRequest">Логин изменяемого пользователя (заполняется, если администратор изменяет другого пользователя, иначе оставляется пустым)</param>
@@ -361,7 +361,7 @@ namespace ITTP_2023.Controllers
         /// <remarks>
         /// Пример запроса:
         ///
-        ///     PUT /ChangePassword?login=Admin&#38;password=Admin&#38;loginRequest=Vasya123&#38;newPassword=123456
+        ///     PUT /ChangePassword?loginRequest=Vasya123&#38;newPassword=123456
         ///
         /// </remarks>
         /// <param name="loginRequest">Логин изменяемого пользователя (заполняется, если администратор изменяет другого пользователя, иначе оставляется пустым)</param>
@@ -400,7 +400,7 @@ namespace ITTP_2023.Controllers
         /// <remarks>
         /// Пример запроса:
         ///
-        ///     DELETE /Delete?login=Admin&#38;password=Admin&#38;loginRequest=Vasya123
+        ///     DELETE /Delete?loginRequest=Vasya123
         ///
         /// </remarks>
         /// <param name="loginRequest">Логин для полного удаления</param>
